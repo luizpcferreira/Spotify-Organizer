@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Organizer — Setup</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="logo">spotify organizer</a>
+    <span class="step-indicator">Step 2 / 3</span>
+  </nav>
+
+  <div class="container container--medium">
+    <h1>Create your playlists</h1>
+    <p class="subtitle">Describe the playlists you want. We'll use AI to sort your top 50 most-played tracks into them.</p>
+
+    <div id="playlists-container"></div>
+
+    <button type="button" class="btn btn-secondary" id="add-playlist" style="margin-bottom: 32px;">
+      + Add another playlist
+    </button>
+
+    <button type="button" class="btn btn-primary" id="organize-btn">
+      Organize my music
+    </button>
+  </div>
+
+  <script>
+    // Guard: require tokens
+    if (!sessionStorage.getItem('spotify_token') || !sessionStorage.getItem('llm_api_key')) {
+      window.location.href = 'index.html';
+    }
+
+    const container = document.getElementById('playlists-container');
+    let playlistCount = 0;
+
+    function createPlaylistCard() {
+      playlistCount++;
+      const card = document.createElement('div');
+      card.className = 'card playlist-card';
+      card.dataset.id = playlistCount;
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="card-number">Playlist ${playlistCount}</span>
+          <button type="button" class="btn btn-icon remove-card" title="Remove">&times;</button>
+        </div>
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" class="playlist-name" placeholder="e.g. Late Night Chill" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Vibe</label>
+            <input type="text" class="playlist-vibe" placeholder="e.g. calm, introspective">
+          </div>
+          <div class="form-group">
+            <label>Energy Level</label>
+            <select class="playlist-energy">
+              <option value="">Any</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <textarea class="playlist-notes" placeholder="Any extra context for the AI..." rows="2"></textarea>
+        </div>
+      `;
+      container.appendChild(card);
+
+      card.querySelector('.remove-card').addEventListener('click', () => {
+        if (container.children.length > 1) {
+          card.remove();
+          renumberCards();
+        }
+      });
+    }
+
+    function renumberCards() {
+      const cards = container.querySelectorAll('.playlist-card');
+      cards.forEach((card, i) => {
+        card.querySelector('.card-number').textContent = `Playlist ${i + 1}`;
+      });
+      playlistCount = cards.length;
+    }
+
+    function collectPlaylists() {
+      const cards = container.querySelectorAll('.playlist-card');
+      const playlists = [];
+      let valid = true;
+
+      cards.forEach((card) => {
+        const name = card.querySelector('.playlist-name').value.trim();
+        if (!name) {
+          card.querySelector('.playlist-name').focus();
+          valid = false;
+          return;
+        }
+        playlists.push({
+          name,
+          vibe: card.querySelector('.playlist-vibe').value.trim(),
+          energy: card.querySelector('.playlist-energy').value,
+          notes: card.querySelector('.playlist-notes').value.trim(),
+        });
+      });
+
+      return valid ? playlists : null;
+    }
+
+    // Init with one card
+    createPlaylistCard();
+
+    document.getElementById('add-playlist').addEventListener('click', createPlaylistCard);
+
+    document.getElementById('organize-btn').addEventListener('click', () => {
+      const playlists = collectPlaylists();
+      if (!playlists) return;
+
+      sessionStorage.setItem('user_playlists', JSON.stringify(playlists));
+      window.location.href = 'result.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Organizer</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="logo">spotify organizer</a>
+    <span class="step-indicator">Step 1 / 3</span>
+  </nav>
+
+  <div class="container container--narrow">
+    <h1>Connect your accounts</h1>
+    <p class="subtitle">We need your Spotify token to read your top tracks and your AI key to organize them into playlists.</p>
+
+    <form id="auth-form">
+      <div class="form-group">
+        <label for="spotify-token">Spotify Bearer Token</label>
+        <input type="password" id="spotify-token" placeholder="Paste your Spotify token here" required>
+        <p class="helper-text">
+          Get yours at
+          <a href="https://developer.spotify.com/console/get-current-user-top-artists-and-tracks/" target="_blank" rel="noopener">
+            Spotify Developer Console
+          </a>
+          — select the <code>user-top-read</code> and <code>playlist-modify-private</code> scopes.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label for="llm-key">Anthropic API Key</label>
+        <input type="password" id="llm-key" placeholder="sk-ant-..." required>
+        <p class="helper-text">
+          Get yours at
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">
+            console.anthropic.com
+          </a>
+        </p>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Continue</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('auth-form');
+
+    // Restore values if user navigates back
+    const savedToken = sessionStorage.getItem('spotify_token');
+    const savedKey = sessionStorage.getItem('llm_api_key');
+    if (savedToken) document.getElementById('spotify-token').value = savedToken;
+    if (savedKey) document.getElementById('llm-key').value = savedKey;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const token = document.getElementById('spotify-token').value.trim();
+      const key = document.getElementById('llm-key').value.trim();
+
+      if (!token || !key) return;
+
+      sessionStorage.setItem('spotify_token', token);
+      sessionStorage.setItem('llm_api_key', key);
+      window.location.href = 'setup.html';
+    });
+  </script>
+</body>
+</html>
