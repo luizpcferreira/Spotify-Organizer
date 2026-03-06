@@ -489,6 +489,62 @@ select {
   border-radius: var(--radius);
 }
 
+/* ── Footer ── */
+
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+  background: rgba(13, 13, 13, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  margin-top: 80px;
+}
+
+footer .footer-brand {
+  font-size: 14px;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+footer .footer-prefix {
+  color: var(--muted);
+}
+
+footer .footer-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.2s;
+}
+
+footer .footer-link:hover {
+  opacity: 0.75;
+}
+
+footer .footer-heart {
+  color: #e84a4a;
+}
+
+footer .footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+footer .footer-links a {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+
+footer .footer-links a:hover {
+  color: var(--text);
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 600px) {
@@ -514,5 +570,9 @@ select {
 
   .actions-bar .btn-primary {
     width: 100%;
+  }
+
+  footer {
+    padding: 16px 20px;
   }
 }
