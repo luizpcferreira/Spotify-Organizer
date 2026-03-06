@@ -26,6 +26,10 @@
           <span class="step-icon">○</span>
           AI is categorizing your tracks
         </li>
+        <li id="step-save">
+          <span class="step-icon">○</span>
+          Saving playlists to Spotify
+        </li>
         <li id="step-done">
           <span class="step-icon">○</span>
           Done
@@ -35,30 +39,27 @@
 
     <!-- Results state (hidden initially) -->
     <div id="results-view" style="display: none;">
-      <div class="results-header">
-        <h1>Your playlists are ready</h1>
-        <p class="subtitle">Review the results below, then save them to your Spotify account.</p>
+      <div class="results-header results-header--row">
+        <div>
+          <h1>Your playlists are ready</h1>
+          <p class="subtitle">Created and saved to your Spotify account.</p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-compact" id="back-btn">
+          Create more
+        </button>
       </div>
 
-      <div id="results-grid" class="results-grid"></div>
+      <div id="embeds-grid" class="embeds-grid"></div>
 
       <div id="unassigned-section" class="unassigned-section" style="display: none;">
-        <h2>Unassigned tracks</h2>
+        <div class="unassigned-header">
+          <h2>Unassigned tracks <span id="unassigned-count" class="unassigned-count"></span></h2>
+          <p>These tracks didn't match any of your playlists.</p>
+        </div>
         <div class="result-playlist">
           <ul id="unassigned-list" class="track-list"></ul>
         </div>
       </div>
-
-      <div class="actions-bar">
-        <button type="button" class="btn btn-primary btn-spotify" id="save-btn">
-          Save to Spotify
-        </button>
-        <button type="button" class="btn btn-secondary" id="back-btn" style="width: auto;">
-          Start over
-        </button>
-      </div>
-
-      <div id="status-container"></div>
     </div>
 
     <!-- Error state (hidden initially) -->
@@ -96,6 +97,7 @@
     const errorView = document.getElementById('error-view');
     const stepFetch = document.getElementById('step-fetch');
     const stepAi = document.getElementById('step-ai');
+    const stepSave = document.getElementById('step-save');
     const stepDone = document.getElementById('step-done');
 
     function markStep(el, state) {
@@ -110,68 +112,88 @@
       document.getElementById('error-message').textContent = msg;
     }
 
-    // Store for saving later
-    let allTracks = [];
-    let categorized = null;
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
 
     async function run() {
       try {
         // Step 1: fetch top tracks
         markStep(stepFetch, 'active');
-        allTracks = await spotify.getTopTracks();
+        const allTracks = await spotify.getTopTracks();
         markStep(stepFetch, 'done');
 
         // Step 2: AI categorization
         markStep(stepAi, 'active');
-        categorized = await categorizeTracks(llmKey, userPlaylists, allTracks);
+        const categorized = await categorizeTracks(llmKey, userPlaylists, allTracks);
         markStep(stepAi, 'done');
 
-        // Step 3: done
-        markStep(stepDone, 'done');
+        // Step 3: Save playlists to Spotify
+        markStep(stepSave, 'active');
+        const userId = await spotify.getUserId();
+        const createdPlaylists = [];
+        const assignedUris = new Set();
 
-        // Short delay for visual feedback
+        for (const playlist of categorized.playlists) {
+          if (!playlist.tracks.length) continue;
+
+          const uris = playlist.tracks.map(t => t.uri);
+          uris.forEach(uri => assignedUris.add(uri));
+
+          const userPlaylist = userPlaylists.find(
+            p => p.name.toLowerCase() === playlist.name.toLowerCase()
+          );
+          const description = userPlaylist
+            ? [userPlaylist.vibe, userPlaylist.energy ? `Energy: ${userPlaylist.energy}` : '']
+                .filter(Boolean).join(' · ')
+            : '';
+
+          const created = await spotify.createPlaylist(userId, playlist.name, description);
+          await spotify.addTracksToPlaylist(created.id, uris);
+          createdPlaylists.push({ id: created.id, name: playlist.name });
+        }
+        markStep(stepSave, 'done');
+
+        // Step 4: Done
+        markStep(stepDone, 'done');
         await new Promise(r => setTimeout(r, 500));
-        renderResults();
+
+        // Render results
+        const unassigned = allTracks.filter(t => !assignedUris.has(t.uri));
+        renderResults(createdPlaylists, unassigned);
       } catch (err) {
         showError(err.message);
       }
     }
 
-    function renderResults() {
+    function renderResults(playlists, unassigned) {
       loadingView.style.display = 'none';
       resultsView.style.display = 'block';
 
-      const grid = document.getElementById('results-grid');
-      const assignedUris = new Set();
-
-      categorized.playlists.forEach((playlist) => {
-        const section = document.createElement('div');
-        section.className = 'result-playlist';
-
-        let tracksHtml = '';
-        playlist.tracks.forEach((track, i) => {
-          assignedUris.add(track.uri);
-          tracksHtml += `
-            <li class="track-item">
-              <span class="track-number">${i + 1}</span>
-              <span class="track-name">${escapeHtml(track.name)}</span>
-            </li>`;
-        });
-
-        section.innerHTML = `
-          <div class="result-playlist-header">
-            <h2>${escapeHtml(playlist.name)}</h2>
-            <span class="track-count">${playlist.tracks.length} tracks</span>
-          </div>
-          <ul class="track-list">${tracksHtml}</ul>`;
-
-        grid.appendChild(section);
+      // Render Spotify embeds
+      const grid = document.getElementById('embeds-grid');
+      playlists.forEach(({ id, name }) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'embed-card';
+        wrapper.innerHTML = `
+          <iframe
+            title="Spotify Embed: ${escapeHtml(name)}"
+            src="https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0"
+            width="100%"
+            height="352"
+            frameBorder="0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          ></iframe>`;
+        grid.appendChild(wrapper);
       });
 
-      // Unassigned tracks
-      const unassigned = allTracks.filter(t => !assignedUris.has(t.uri));
+      // Render unassigned tracks
       if (unassigned.length) {
         document.getElementById('unassigned-section').style.display = 'block';
+        document.getElementById('unassigned-count').textContent = `(${unassigned.length})`;
         const list = document.getElementById('unassigned-list');
         unassigned.forEach((track, i) => {
           list.innerHTML += `
@@ -183,53 +205,6 @@
         });
       }
     }
-
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    // Save to Spotify
-    document.getElementById('save-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('save-btn');
-      const statusContainer = document.getElementById('status-container');
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-
-      try {
-        const userId = await spotify.getUserId();
-
-        for (const playlist of categorized.playlists) {
-          if (!playlist.tracks.length) continue;
-
-          const uris = playlist.tracks.map(t => t.uri);
-          const userPlaylist = userPlaylists.find(
-            p => p.name.toLowerCase() === playlist.name.toLowerCase()
-          );
-          const description = userPlaylist
-            ? [userPlaylist.vibe, userPlaylist.energy ? `Energy: ${userPlaylist.energy}` : '']
-                .filter(Boolean).join(' · ')
-            : '';
-
-          const created = await spotify.createPlaylist(userId, playlist.name, description);
-          await spotify.addTracksToPlaylist(created.id, uris);
-        }
-
-        statusContainer.innerHTML = `
-          <div class="status-message success">
-            All playlists have been created on your Spotify account!
-          </div>`;
-        btn.textContent = 'Saved!';
-      } catch (err) {
-        statusContainer.innerHTML = `
-          <div class="status-message error">
-            Error: ${escapeHtml(err.message)}
-          </div>`;
-        btn.disabled = false;
-        btn.textContent = 'Retry save';
-      }
-    });
 
     document.getElementById('back-btn').addEventListener('click', () => {
       window.location.href = 'setup.html';

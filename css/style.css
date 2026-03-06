@@ -308,6 +308,25 @@ select {
   margin-bottom: 48px;
 }
 
+.results-header--row {
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.results-header--row .subtitle {
+  margin-bottom: 0;
+}
+
+.btn-compact {
+  white-space: nowrap;
+  width: auto;
+  padding: 10px 20px;
+  flex-shrink: 0;
+}
+
 .results-grid {
   display: grid;
   gap: 24px;
@@ -430,14 +449,44 @@ select {
 /* ── Unassigned tracks ── */
 
 .unassigned-section {
-  margin-top: 32px;
+  margin-top: 40px;
+}
+
+.unassigned-header {
+  margin-bottom: 16px;
+}
+
+.unassigned-header h2 {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.unassigned-header p {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.unassigned-count {
   opacity: 0.6;
 }
 
-.unassigned-section h2 {
-  font-size: 14px;
-  color: var(--muted);
-  margin-bottom: 12px;
+/* ── Spotify Embeds ── */
+
+.embeds-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.embed-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.embed-card iframe {
+  display: block;
+  border-radius: var(--radius);
 }
 
 /* ── Responsive ── */

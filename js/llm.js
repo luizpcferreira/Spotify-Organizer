@@ -14,8 +14,9 @@ async function categorizeTracks(apiKey, playlists, tracks) {
   const prompt = `You are a music playlist organizer.
 
 Below is a list of songs and user-created playlist descriptions.
-For each song, decide which playlist fits best based on the vibe, energy, and description.
-A song can go into more than one playlist, or none if it doesn't fit any.
+For each song, decide which playlists it fits based on the vibe, energy, and description.
+A song SHOULD appear in multiple playlists if it matches more than one — do not limit a song to a single playlist.
+If a song doesn't fit any playlist, leave it out entirely.
 
 Respond ONLY with valid JSON in this exact format (no markdown, no extra text):
 {
